@@ -27,6 +27,9 @@ call_lefthook()
   elif yarn lefthook -h >/dev/null 2>&1
   then
     yarn lefthook $@
+  elif swift run lefthook >/dev/null 2>&1
+  then
+    swift run lefthook $@
   else
     echo "Can't find lefthook in PATH"
   fi

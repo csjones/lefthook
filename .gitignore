@@ -18,3 +18,11 @@ package.json
 node_modules/
 yarn.lock
 package-lock.json
+
+.DS_Store
+Packages/
+Package.pins
+Package.resolved
+*.xcodeproj
+.swiftpm
+.build/

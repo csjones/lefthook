@@ -1,0 +1,3 @@
+import Lefthook
+
+CmdExecute()
