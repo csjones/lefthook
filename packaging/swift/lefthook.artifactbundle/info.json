@@ -1,0 +1,51 @@
+{
+    "schemaVersion": "1.0",
+    "artifacts": {
+        "lefthook": {
+            "type": "executable",
+            "version": "1.4.9",
+            "variants": [
+                {
+                  "path": "lefthook_1.4.9_amd64.deb",
+                  "supportedTriples": ["x86_64-unknown-linux-deb"]
+                },
+                {
+                  "path": "lefthook_1.4.9_amd64.rpm",
+                  "supportedTriples": ["x86_64-unknown-linux-rpm"]
+                },
+                {
+                  "path": "lefthook_1.4.9_arm64.deb",
+                  "supportedTriples": ["arm64-unknown-linux-deb"]
+                },
+                {
+                  "path": "lefthook_1.4.9_arm64.rpm",
+                  "supportedTriples": ["arm64-unknown-linux-rpm"]
+                },
+                {
+                  "path": "lefthook_1.4.9_Linux_arm64",
+                  "supportedTriples": ["arm64-unknown-linux"]
+                },
+                {
+                  "path": "lefthook_1.4.9_Linux_x86_64",
+                  "supportedTriples": ["x86_64-unknown-linux"]
+                },
+                {
+                    "path": "lefthook_1.4.9_MacOS_arm64",
+                    "supportedTriples": ["arm64-apple-macosx"]
+                },
+                {
+                  "path": "lefthook_1.4.9_MacOS_x86_64",
+                  "supportedTriples": ["x86_64-apple-macos"]
+                },
+                {
+                  "path": "lefthook_1.4.9_Windows_arm64.exe",
+                  "supportedTriples": ["arm64-unknown-windows"]
+                },
+                {
+                  "path": "lefthook_1.4.9_Windows_x86_64.exe",
+                  "supportedTriples": ["x86_64-unknown-windows"]
+                }
+            ]
+        }
+    }
+}
