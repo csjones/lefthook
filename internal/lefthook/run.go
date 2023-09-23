@@ -1,15 +1,18 @@
 package lefthook
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/evilmartians/lefthook/internal/config"
-	"github.com/evilmartians/lefthook/internal/lefthook/runner"
+	"github.com/evilmartians/lefthook/internal/lefthook/run"
 	"github.com/evilmartians/lefthook/internal/log"
 	"github.com/evilmartians/lefthook/internal/version"
 )
@@ -79,7 +82,10 @@ func (l *Lefthook) Run(hookName string, args RunArgs, gitArgs []string) error {
 	}
 
 	if !logSettings.SkipMeta() {
-		log.Info(log.Cyan("Lefthook v" + version.Version(false)))
+		log.Box(
+			log.Cyan("🥊 lefthook ")+log.Gray(fmt.Sprintf("v%s", version.Version(false))),
+			log.Gray("hook: ")+log.Bold(hookName),
+		)
 	}
 
 	// This line controls updating the git hook if config has changed
@@ -90,26 +96,25 @@ Run 'lefthook install' manually.`,
 		)
 	}
 
-	if !logSettings.SkipMeta() {
-		log.Info(log.Cyan("RUNNING HOOK:"), log.Bold(hookName))
-	}
-
 	// Find the hook
 	hook, ok := cfg.Hooks[hookName]
 	if !ok {
-		log.Debugf("[lefthook] skip: Hook %s doesn't exist in the config", hookName)
-		return nil
+		if slices.Contains(config.AvailableHooks[:], hookName) {
+			log.Debugf("[lefthook] skip: Hook %s doesn't exist in the config", hookName)
+			return nil
+		}
+
+		return fmt.Errorf("Hook %s doesn't exist in the config", hookName)
 	}
 	if err := hook.Validate(); err != nil {
 		return err
 	}
 
 	startTime := time.Now()
-	resultChan := make(chan runner.Result, len(hook.Commands)+len(hook.Scripts))
+	resultChan := make(chan run.Result, len(hook.Commands)+len(hook.Scripts))
 
-	run := runner.NewRunner(
-		runner.Opts{
-			Fs:              l.Fs,
+	runner := run.NewRunner(
+		run.Options{
 			Repo:            l.repo,
 			Hook:            hook,
 			HookName:        hookName,
@@ -139,14 +144,21 @@ Run 'lefthook install' manually.`,
 		)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
 	go func() {
-		run.RunAll(sourceDirs)
+		runner.RunAll(ctx, sourceDirs)
 		close(resultChan)
 	}()
 
-	var results []runner.Result
+	var results []run.Result
 	for res := range resultChan {
 		results = append(results, res)
+	}
+
+	if ctx.Err() != nil {
+		return errors.New("Interrupted")
 	}
 
 	if !logSettings.SkipSummary() {
@@ -154,7 +166,7 @@ Run 'lefthook install' manually.`,
 	}
 
 	for _, result := range results {
-		if result.Status == runner.StatusErr {
+		if result.Status == run.StatusErr {
 			return errors.New("") // No error should be printed
 		}
 	}
@@ -164,23 +176,30 @@ Run 'lefthook install' manually.`,
 
 func printSummary(
 	duration time.Duration,
-	results []runner.Result,
+	results []run.Result,
 	logSettings log.SkipSettings,
 ) {
 	if len(results) == 0 {
 		if !logSettings.SkipEmptySummary() {
-			log.Info(log.Cyan("\nSUMMARY: (SKIP EMPTY)"))
+			log.Separate(
+				fmt.Sprintf(
+					"%s %s %s",
+					log.Cyan("summary:"),
+					log.Gray("(skip)"),
+					log.Yellow("empty"),
+				),
+			)
 		}
 		return
 	}
 
-	log.Info(log.Cyan(
-		fmt.Sprintf("\nSUMMARY: (done in %.2f seconds)", duration.Seconds()),
-	))
+	log.Separate(
+		log.Cyan("summary: ") + log.Gray(fmt.Sprintf("(done in %.2f seconds)", duration.Seconds())),
+	)
 
 	if !logSettings.SkipSuccess() {
 		for _, result := range results {
-			if result.Status != runner.StatusOk {
+			if result.Status != run.StatusOk {
 				continue
 			}
 
@@ -190,7 +209,7 @@ func printSummary(
 
 	if !logSettings.SkipFailure() {
 		for _, result := range results {
-			if result.Status != runner.StatusErr {
+			if result.Status != run.StatusErr {
 				continue
 			}
 

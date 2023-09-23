@@ -1,6 +1,7 @@
-package runner
+package run
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,21 +15,22 @@ import (
 
 	"github.com/evilmartians/lefthook/internal/config"
 	"github.com/evilmartians/lefthook/internal/git"
+	"github.com/evilmartians/lefthook/internal/lefthook/run/exec"
 )
 
 type TestExecutor struct{}
 
-func (e TestExecutor) Execute(opts ExecuteOptions, _out io.Writer) (err error) {
-	if opts.args[0] == "success" {
+func (e TestExecutor) Execute(_ctx context.Context, opts exec.Options, _out io.Writer) (err error) {
+	if strings.HasPrefix(opts.Commands[0], "success") {
 		err = nil
 	} else {
-		err = errors.New(opts.args[0])
+		err = errors.New(opts.Commands[0])
 	}
 
 	return
 }
 
-func (e TestExecutor) RawExecute(_command []string, _out io.Writer) error {
+func (e TestExecutor) RawExecute(_ctx context.Context, _command []string, _out io.Writer) error {
 	return nil
 }
 
@@ -36,6 +38,8 @@ type GitMock struct {
 	mux      sync.Mutex
 	commands []string
 }
+
+func (g *GitMock) SetRootPath(_root string) {}
 
 func (g *GitMock) Cmd(cmd string) (string, error) {
 	g.mux.Lock()
@@ -727,8 +731,7 @@ func TestRunAll(t *testing.T) {
 		resultChan := make(chan Result, len(tt.hook.Commands)+len(tt.hook.Scripts))
 		executor := TestExecutor{}
 		runner := &Runner{
-			Opts: Opts{
-				Fs:         fs,
+			Options: Options{
 				Repo:       repo,
 				Hook:       tt.hook,
 				HookName:   tt.hookName,
@@ -755,7 +758,7 @@ func TestRunAll(t *testing.T) {
 		}
 
 		t.Run(fmt.Sprintf("%d: %s", i, tt.name), func(t *testing.T) {
-			runner.RunAll(tt.sourceDirs)
+			runner.RunAll(context.Background(), tt.sourceDirs)
 			close(resultChan)
 
 			var success, fail []Result

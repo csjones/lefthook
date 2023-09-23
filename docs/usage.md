@@ -1,5 +1,12 @@
 # Usage
 
+You want to use lefthook in your git project. Here is what you need:
+
+1. Create a `lefthook.yml` (or use any other [supported name](./configuration.md#config-file))
+1. [Install](#lefthook-install) lefthook git hooks
+
+Then use git as usually, you don't need to reinstall lefthook when you change the config.
+
 - [Commands](#commands)
   - [`lefthook install`](#lefthook-install)
   - [`lefthook uninstall`](#lefthook-uninstall)
@@ -19,6 +26,8 @@
   - [Concurrent files overrides](#concurrent-files-overrides)
   - [Capture ARGS from git in the script](#capture-args-from-git-in-the-script)
   - [Git LFS support](#git-lfs-support)
+  - [Pass stdin to a command or script](#pass-stdin-to-a-command-or-script)
+  - [Using an interactive command or script](#using-an-interactive-command-or-script)
 
 ----
 
@@ -30,7 +39,7 @@ Here are the description of common usage of these commands.
 
 ### `lefthook install`
 
-Run `lefthook install` to initialize a `lefthook.yml` config and/or synchronize `.git/hooks/` with your configuration. This is usually the first thing you do after cloning the repo with `lefthook.yml` config. For config options see our [configuration documentation](./configuration.md).
+Run `lefthook install` to initialize a `lefthook.yml` config and/or synchronize `.git/hooks/` with your configuration. This must be the first thing you do after cloning the repo with `lefthook.yml` config. For config options see our [configuration documentation](./configuration.md).
 
 > If you use lefthook with NPM package manager it should have already run `lefthook install` in postinstall scripts.
 
@@ -219,7 +228,7 @@ When you try to commit `git commit -m "haha bad commit text"` script `commitlint
 ### Parallel execution
 
 You can enable parallel execution if you want to speed up your checks.
-Lets get example from [discourse](https://github.com/discourse/discourse/blob/master/.travis.yml#L77-L83) project.
+Lets imagine we have the following rules to lint the whole project:
 
 ```
 bundle exec rubocop --parallel && \
@@ -304,3 +313,12 @@ Lefthook runs LFS hooks internally for the following hooks:
 - pre-push
 
 Errors are suppressed if git LFS is not required for the project. You can use [`LEFTHOOK_VERBOSE`](#lefthook_verbose) ENV to make lefthook show git LFS output.
+
+
+### Pass stdin to a command or script
+
+When you need to read the data from stdin – specify [`use_stdin: true`](./configuration.md#use_stdin). This option is good when you write a command or script that receives data from git using stdin (for the `pre-push` hook, for example).
+
+### Using an interactive command or script
+
+When you need to interact with user – specify [`interactive: true`](./configuration.md#interactive). Lefthook will connect to the current TTY and forward it to your command's or script's stdin.
